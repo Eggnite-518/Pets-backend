@@ -1,5 +1,6 @@
 package com.example.pets_backend.controller;
 
+import com.example.pets_backend.dto.resp.OfficialMessageInboxItemRespDTO;
 import com.example.pets_backend.dto.resp.OfficialMessageRespDTO;
 import com.example.pets_backend.frameworks.auth.UserContext;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
@@ -24,6 +25,11 @@ public class OfficialMessageController {
     @GetMapping("/official")
     public Result<List<OfficialMessageRespDTO>> listOfficialMessages(@RequestParam Long orderId) {
         return Results.success(officialMessageService.listOfficialMessages(orderId, currentUserId()));
+    }
+
+    @GetMapping("/official/inbox")
+    public Result<List<OfficialMessageInboxItemRespDTO>> listOfficialInbox() {
+        return Results.success(officialMessageService.listInbox(currentUserId()));
     }
 
     private Long currentUserId() {

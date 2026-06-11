@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.pets_backend.dto.resp.OfficialMessageInboxItemRespDTO;
 import com.example.pets_backend.dto.resp.OfficialMessageRespDTO;
 import com.example.pets_backend.frameworks.auth.UserContext;
 import com.example.pets_backend.frameworks.auth.UserInfoDTO;
@@ -63,6 +64,23 @@ class OfficialMessageControllerTest {
                 .andExpect(jsonPath("$.data[0].receiverId", is(1001)));
 
         verify(officialMessageService).listOfficialMessages(2002L, 1001L);
+    }
+
+    @Test
+    void listOfficialInboxUsesCurrentUser() throws Exception {
+        UserContext.setUser(new UserInfoDTO(1001L, "13800000001", "宠主", 1, "jwt-token"));
+        when(officialMessageService.listInbox(eq(1001L)))
+                .thenReturn(List.of(new OfficialMessageInboxItemRespDTO(2002L, "豆豆 的服务通知", "订单 #2002",
+                        "【报名通知】宠托师阿周已报名您的订单 #2002，请前往订单详情查看候选人并录用。",
+                        "2026-05-23 10:00:00", 1)));
+
+        mockMvc.perform(get("/api/v1/messages/official/inbox"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code", is("0")))
+                .andExpect(jsonPath("$.data[0].orderId", is(2002)))
+                .andExpect(jsonPath("$.data[0].messageCount", is(1)));
+
+        verify(officialMessageService).listInbox(1001L);
     }
 }
 

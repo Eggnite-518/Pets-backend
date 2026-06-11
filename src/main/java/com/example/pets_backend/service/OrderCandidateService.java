@@ -18,10 +18,12 @@ import com.example.pets_backend.dto.resp.ProviderDetailRespDTO;
 import com.example.pets_backend.dto.resp.ServiceItemRespDTO;
 import com.example.pets_backend.enums.CandidateSortByEnum;
 import com.example.pets_backend.enums.OrderApplicationStatusEnum;
+import com.example.pets_backend.enums.PetTypeEnum;
 import com.example.pets_backend.frameworks.auth.UserContext;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
 import com.example.pets_backend.frameworks.convention.exception.ClientException;
 import com.example.pets_backend.service.support.OrderHardFilterService;
+import com.example.pets_backend.service.support.OssAccessibleUrlService;
 import com.example.pets_backend.service.support.ProviderProfileSupportService;
 import com.example.pets_backend.service.support.ProviderPublicMetrics;
 import java.math.BigDecimal;
@@ -39,14 +41,10 @@ import org.springframework.stereotype.Service;
 public class OrderCandidateService {
 
     private static final int ORDER_STATUS_BOUNTY = 1;
-    private static final int PET_TYPE_CAT = 1;
-    private static final int PET_TYPE_DOG = 2;
-    private static final int PET_TYPE_EXOTIC = 3;
-    private static final int SERVICE_TYPE_FEED_CAT = 1;
-    private static final int SERVICE_TYPE_WALK_DOG = 2;
-    private static final String SERVICE_TEXT_FEED_CAT = "上门喂猫";
-    private static final String SERVICE_TEXT_WALK_DOG = "上门遛狗";
-    private static final String SERVICE_TEXT_FEED_EXOTIC = "上门喂养异宠";
+    private static final int SERVICE_TYPE_FEED = 1;
+    private static final int SERVICE_TYPE_WALK = 2;
+    private static final String SERVICE_ACTION_TEXT_FEED = "喂";
+    private static final String SERVICE_ACTION_TEXT_WALK = "遛";
     private static final String STATUS_TEXT_BOUNTY = "等待反馈";
 
     private final OrderDao orderDao;
@@ -57,6 +55,7 @@ public class OrderCandidateService {
     private final SitterProfileDao sitterProfileDao;
     private final ProviderProfileSupportService providerProfileSupportService;
     private final OrderHardFilterService orderHardFilterService;
+    private final OssAccessibleUrlService ossAccessibleUrlService;
 
     public CandidateListRespDTO listCandidates(Long orderId, String sortBy) {
         CandidateSortByEnum sortByEnum = CandidateSortByEnum.fromCode(sortBy);
@@ -103,7 +102,7 @@ public class OrderCandidateService {
                             application.getApplyId(),
                             providerId,
                             user == null ? null : user.getNickname(),
-                            user == null ? null : user.getAvatarUrl(),
+                            user == null ? null : ossAccessibleUrlService.toDisplayUrl(user.getAvatarUrl()),
                             application.getApplyStatus(),
                             OrderApplicationStatusEnum.getDescByCode(application.getApplyStatus()),
                             providerProfileSupportService.resolveDistanceKm(addressSnapshot, profile),
@@ -141,7 +140,7 @@ public class OrderCandidateService {
                 orderId,
                 order.getStatus(),
                 toOrderStatusText(order.getStatus()),
-                buildServiceItems(snapshots),
+                buildServiceItems(snapshots, order.getServiceType()),
                 toIntegerAmount(order.getTotalAmount()),
                 providerProfileSupportService.resolveDistanceKm(addressSnapshot, profile),
                 firstSnapshot == null ? null : firstSnapshot.getSnapPetName(),
@@ -149,7 +148,7 @@ public class OrderCandidateService {
                 firstSnapshot == null ? null : firstSnapshot.getSnapReq(),
                 providerId,
                 user == null ? null : user.getNickname(),
-                user == null ? null : user.getAvatarUrl(),
+                user == null ? null : ossAccessibleUrlService.toDisplayUrl(user.getAvatarUrl()),
                 metrics.creditScore(),
                 metrics.rating(),
                 metrics.totalOrderCount(),
@@ -197,38 +196,33 @@ public class OrderCandidateService {
         return order;
     }
 
-    private List<ServiceItemRespDTO> buildServiceItems(List<OrderPetSnapshotDO> snapshots) {
+    private List<ServiceItemRespDTO> buildServiceItems(List<OrderPetSnapshotDO> snapshots, Integer serviceType) {
         return snapshots.stream()
                 .map(snapshot -> {
-                    Integer serviceType = petTypeToServiceType(snapshot.getSnapPetType());
-                    String serviceText = petTypeToServiceText(snapshot.getSnapPetType());
-                    return serviceType == null ? null : new ServiceItemRespDTO(serviceType, serviceText);
+                    String serviceText = buildServiceTypeText(serviceType, snapshot.getSnapPetType());
+                    return serviceText == null ? null : new ServiceItemRespDTO(serviceType, serviceText);
                 })
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
     }
 
-    private Integer petTypeToServiceType(Integer petType) {
-        if (petType == null) {
+    private String buildServiceTypeText(Integer serviceType, Integer petType) {
+        String actionText = serviceActionText(serviceType);
+        String petTypeText = PetTypeEnum.getDescByCode(petType);
+        if (actionText == null || petTypeText == null || petTypeText.isBlank()) {
             return null;
         }
-        return switch (petType) {
-            case PET_TYPE_CAT -> SERVICE_TYPE_FEED_CAT;
-            case PET_TYPE_DOG -> SERVICE_TYPE_WALK_DOG;
-            case PET_TYPE_EXOTIC -> SERVICE_TYPE_FEED_CAT;
-            default -> null;
-        };
+        return "上门" + actionText + petTypeText;
     }
 
-    private String petTypeToServiceText(Integer petType) {
-        if (petType == null) {
+    private String serviceActionText(Integer serviceType) {
+        if (serviceType == null) {
             return null;
         }
-        return switch (petType) {
-            case PET_TYPE_CAT -> SERVICE_TEXT_FEED_CAT;
-            case PET_TYPE_DOG -> SERVICE_TEXT_WALK_DOG;
-            case PET_TYPE_EXOTIC -> SERVICE_TEXT_FEED_EXOTIC;
+        return switch (serviceType) {
+            case SERVICE_TYPE_FEED -> SERVICE_ACTION_TEXT_FEED;
+            case SERVICE_TYPE_WALK -> SERVICE_ACTION_TEXT_WALK;
             default -> null;
         };
     }

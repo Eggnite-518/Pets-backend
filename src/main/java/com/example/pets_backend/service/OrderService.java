@@ -116,6 +116,7 @@ public class OrderService {
     private final OrderRequirementTagService orderRequirementTagService;
     private final OrderServiceFeeCalculator orderServiceFeeCalculator;
     private final OrderBountyPushService orderBountyPushService;
+    private final OrderOfficialNotificationService orderOfficialNotificationService;
     private final SitterProfileDao sitterProfileDao;
     private final ProviderProfileSupportService providerProfileSupportService;
     private final OssAccessibleUrlService ossAccessibleUrlService;
@@ -381,6 +382,7 @@ public class OrderService {
         orderDao.updateProviderIdAndStatus(orderId, providerId, ORDER_STATUS_PENDING_PAY);
         orderApplicationDao.updateApplyStatus(orderId, providerId, APPLY_STATUS_SELECTED);
         orderApplicationDao.updateApplyStatusForOthers(orderId, providerId, APPLY_STATUS_REJECTED);
+        orderOfficialNotificationService.notifyCaretakerOnSelected(order, providerId);
     }
 
     @Transactional
@@ -416,17 +418,19 @@ public class OrderService {
         return orders.stream()
                 .map(order -> {
                     List<String> hardFilterTags = orderHardFilterService.parseTags(order);
+                    List<ApplicationBriefRespDTO> applications =
+                            applicationsByOrderId.getOrDefault(order.getOrderId(), List.of());
                     return new MyRewardingOrderRespDTO(
                             order.getOrderId(),
                             order.getServiceDate(),
                             order.getTotalAmount(),
                             formatAddress(addressSnapshots.get(order.getAddressSnapshotId())),
                             order.getStatus(),
-                            OrderStatusEnum.getDescByCode(order.getStatus()),
+                            resolveOwnerListStatusDesc(order.getStatus(), applications),
                             hardFilterTags,
                             OrderHardFilterTagEnum.describeTags(hardFilterTags),
                             buildOrderPetBriefs(snapshotsByOrderId.getOrDefault(order.getOrderId(), List.of())),
-                            applicationsByOrderId.getOrDefault(order.getOrderId(), List.of()));
+                            applications);
                 })
                 .toList();
     }
@@ -468,7 +472,7 @@ public class OrderService {
                                     application.getApplyId(),
                                     application.getProviderId(),
                                     user == null ? null : user.getNickname(),
-                                    user == null ? null : user.getAvatarUrl(),
+                                    user == null ? null : ossAccessibleUrlService.toDisplayUrl(user.getAvatarUrl()),
                                     application.getApplyStatus(),
                                     OrderApplicationStatusEnum.getDescByCode(application.getApplyStatus()));
                         }, Collectors.toList())));
@@ -749,6 +753,15 @@ public class OrderService {
             case ORDER_STATUS_BOUNTY -> STATUS_TEXT_BOUNTY;
             default -> null;
         };
+    }
+
+    private String resolveOwnerListStatusDesc(Integer status, List<ApplicationBriefRespDTO> applications) {
+        if (Objects.equals(status, ORDER_STATUS_BOUNTY)
+                && applications != null
+                && !applications.isEmpty()) {
+            return "待处理";
+        }
+        return OrderStatusEnum.getDescByCode(status);
     }
 
     private Integer toIntegerAmount(BigDecimal amount) {

@@ -99,6 +99,9 @@ class OrderServiceTest {
     private OrderBountyPushService orderBountyPushService;
 
     @Mock
+    private OrderOfficialNotificationService orderOfficialNotificationService;
+
+    @Mock
     private SitterProfileDao sitterProfileDao;
 
     @Mock
@@ -119,8 +122,9 @@ class OrderServiceTest {
                 new PetProfileTagService(objectMapper));
         orderService = new OrderService(orderDao, orderApplicationDao, orderAddressSnapshotDao, orderPetSnapshotDao,
                 petArchiveDao, userAddressDao, userDao, orderSettlementService, orderCandidateService,
-                orderHardFilterService, orderRequirementTagService, orderServiceFeeCalculator, orderBountyPushService,
-                sitterProfileDao, providerProfileSupportService, ossAccessibleUrlService);
+                orderHardFilterService, null, null, orderRequirementTagService, orderServiceFeeCalculator,
+                orderBountyPushService, orderOfficialNotificationService, sitterProfileDao, providerProfileSupportService,
+                ossAccessibleUrlService);
         UserContext.setUser(new UserInfoDTO(1001L, "13800000001", "小林", 1, "jwt-token"));
     }
 
@@ -152,6 +156,7 @@ class OrderServiceTest {
         assertEquals(1, result.get(0).pets().get(0).petType());
         assertEquals(1, result.get(0).applications().size());
         assertEquals("阿周", result.get(0).applications().get(0).providerNickname());
+        assertEquals("待处理", result.get(0).statusDesc());
     }
 
     @Test
@@ -407,6 +412,7 @@ class OrderServiceTest {
         verify(orderDao).updateProviderIdAndStatus(2002L, 1002L, 2);
         verify(orderApplicationDao).updateApplyStatus(2002L, 1002L, 2);
         verify(orderApplicationDao).updateApplyStatusForOthers(2002L, 1002L, 1);
+        verify(orderOfficialNotificationService).notifyCaretakerOnSelected(order, 1002L);
     }
 
     @Test

@@ -24,6 +24,7 @@ import com.example.pets_backend.frameworks.auth.UserInfoDTO;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
 import com.example.pets_backend.frameworks.convention.exception.ClientException;
 import com.example.pets_backend.service.support.OrderHardFilterService;
+import com.example.pets_backend.service.support.OssAccessibleUrlService;
 import com.example.pets_backend.service.support.ProviderProfileSupportService;
 import com.example.pets_backend.service.support.ProviderPublicMetrics;
 import java.math.BigDecimal;
@@ -62,12 +63,17 @@ class OrderCandidateServiceTest {
     @Mock
     private OrderHardFilterService orderHardFilterService;
 
+    @Mock
+    private OssAccessibleUrlService ossAccessibleUrlService;
+
     private OrderCandidateService orderCandidateService;
 
     @BeforeEach
     void setUp() {
+        when(ossAccessibleUrlService.toDisplayUrl(any())).thenAnswer(invocation -> invocation.getArgument(0));
         orderCandidateService = new OrderCandidateService(orderDao, orderApplicationDao, orderAddressSnapshotDao,
-                orderPetSnapshotDao, userDao, sitterProfileDao, providerProfileSupportService, orderHardFilterService);
+                orderPetSnapshotDao, userDao, sitterProfileDao, providerProfileSupportService, orderHardFilterService,
+                ossAccessibleUrlService);
         UserContext.setUser(new UserInfoDTO(1001L, "13800000001", "小林", 1, "jwt-token"));
     }
 
@@ -211,6 +217,7 @@ class OrderCandidateServiceTest {
 
         assertEquals(1002L, result.providerId());
         assertEquals("阿周", result.providerNickname());
+        assertEquals("https://example.com/avatar.png", result.providerAvatarUrl());
         assertEquals(92, result.creditScore());
         assertEquals(4.8, result.rating());
         assertEquals(4.7, result.punctualityAvg());
@@ -221,6 +228,73 @@ class OrderCandidateServiceTest {
         assertEquals(2, result.certLabels().size());
         assertEquals(0.6, result.distanceKm());
         assertEquals("团团", result.petName());
+        assertEquals(1, result.serviceItems().size());
+        assertEquals("上门喂猫", result.serviceItems().get(0).serviceTypeText());
+    }
+
+    @Test
+    void getProviderDetailUsesOrderServiceTypeForWalkDog() {
+        OrderDO order = buildOrder(2002L, 1001L, 7001L);
+        order.setServiceType(2);
+        when(orderDao.selectById(2002L)).thenReturn(order);
+
+        OrderApplicationDO application = buildApplication(4002L, 2002L, 1002L, 0);
+        when(orderApplicationDao.selectByOrderIdAndProviderId(2002L, 1002L)).thenReturn(application);
+        when(userDao.selectById(1002L)).thenReturn(buildUser(1002L, "阿周", "https://example.com/avatar.png"));
+        when(sitterProfileDao.selectById(1002L)).thenReturn(buildProfile(1002L, 31.2304, 121.4737));
+
+        OrderAddressSnapshotDO addressSnapshot = new OrderAddressSnapshotDO();
+        when(orderAddressSnapshotDao.selectById(7001L)).thenReturn(addressSnapshot);
+
+        OrderPetSnapshotDO snapshot = new OrderPetSnapshotDO();
+        snapshot.setSnapPetName("可乐");
+        snapshot.setSnapPetType(2);
+        when(orderPetSnapshotDao.selectByOrderIds(List.of(2002L))).thenReturn(List.of(snapshot));
+
+        when(providerProfileSupportService.resolveMetrics(1002L))
+                .thenReturn(new ProviderPublicMetrics(92, 4.8, 15, 28, 96.5, "银牌宠托师", List.of()));
+        when(providerProfileSupportService.resolveDistanceKm(addressSnapshot, buildProfile(1002L, 31.2304, 121.4737)))
+                .thenReturn(0.6);
+        when(providerProfileSupportService.resolvePunctualityAvg(1002L)).thenReturn(4.7);
+        when(providerProfileSupportService.resolveProfessionalAvg(1002L)).thenReturn(4.9);
+
+        ProviderDetailRespDTO result = orderCandidateService.getProviderDetail(2002L, 1002L);
+
+        assertEquals(1, result.serviceItems().size());
+        assertEquals(2, result.serviceItems().get(0).serviceType());
+        assertEquals("上门遛狗", result.serviceItems().get(0).serviceTypeText());
+    }
+
+    @Test
+    void getProviderDetailUsesOrderServiceTypeForWalkExoticPet() {
+        OrderDO order = buildOrder(2002L, 1001L, 7001L);
+        order.setServiceType(2);
+        when(orderDao.selectById(2002L)).thenReturn(order);
+
+        OrderApplicationDO application = buildApplication(4002L, 2002L, 1002L, 0);
+        when(orderApplicationDao.selectByOrderIdAndProviderId(2002L, 1002L)).thenReturn(application);
+        when(userDao.selectById(1002L)).thenReturn(buildUser(1002L, "阿周", "https://example.com/avatar.png"));
+        when(sitterProfileDao.selectById(1002L)).thenReturn(buildProfile(1002L, 31.2304, 121.4737));
+
+        OrderAddressSnapshotDO addressSnapshot = new OrderAddressSnapshotDO();
+        when(orderAddressSnapshotDao.selectById(7001L)).thenReturn(addressSnapshot);
+
+        OrderPetSnapshotDO snapshot = new OrderPetSnapshotDO();
+        snapshot.setSnapPetName("小仓");
+        snapshot.setSnapPetType(3);
+        when(orderPetSnapshotDao.selectByOrderIds(List.of(2002L))).thenReturn(List.of(snapshot));
+
+        when(providerProfileSupportService.resolveMetrics(1002L))
+                .thenReturn(new ProviderPublicMetrics(92, 4.8, 15, 28, 96.5, "银牌宠托师", List.of()));
+        when(providerProfileSupportService.resolveDistanceKm(addressSnapshot, buildProfile(1002L, 31.2304, 121.4737)))
+                .thenReturn(0.6);
+        when(providerProfileSupportService.resolvePunctualityAvg(1002L)).thenReturn(4.7);
+        when(providerProfileSupportService.resolveProfessionalAvg(1002L)).thenReturn(4.9);
+
+        ProviderDetailRespDTO result = orderCandidateService.getProviderDetail(2002L, 1002L);
+
+        assertEquals(1, result.serviceItems().size());
+        assertEquals("上门遛异宠", result.serviceItems().get(0).serviceTypeText());
     }
 
     @Test

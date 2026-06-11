@@ -33,6 +33,7 @@ public class OrderApplicationService {
     private final SitterProfileDao sitterProfileDao;
     private final CaretakerDepositService caretakerDepositService;
     private final OrderHardFilterService orderHardFilterService;
+    private final OrderOfficialNotificationService orderOfficialNotificationService;
 
     @Transactional
     public OrderApplicationRespDTO apply(Long orderId) {
@@ -76,6 +77,7 @@ public class OrderApplicationService {
         application.setApplyStatus(APPLY_STATUS_APPLYING);
 
         orderApplicationDao.insert(application);
+        orderOfficialNotificationService.notifyOwnerOnProviderApplication(order, providerId);
         return new OrderApplicationRespDTO(application.getApplyId());
     }
 

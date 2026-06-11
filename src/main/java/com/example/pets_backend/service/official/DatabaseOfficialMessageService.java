@@ -3,17 +3,24 @@ package com.example.pets_backend.service.official;
 import com.example.pets_backend.config.OfficialMessageProperties;
 import com.example.pets_backend.dao.ChatDao;
 import com.example.pets_backend.dao.OrderDao;
+import com.example.pets_backend.dao.OrderPetSnapshotDao;
 import com.example.pets_backend.dao.UserDao;
 import com.example.pets_backend.dao.entity.ChatDO;
 import com.example.pets_backend.dao.entity.OrderDO;
+import com.example.pets_backend.dao.entity.OrderPetSnapshotDO;
 import com.example.pets_backend.dao.entity.UserDO;
+import com.example.pets_backend.dto.resp.OfficialMessageInboxItemRespDTO;
 import com.example.pets_backend.dto.resp.OfficialMessageRespDTO;
 import com.example.pets_backend.dto.resp.OfficialMessageSendRespDTO;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
 import com.example.pets_backend.frameworks.convention.exception.ClientException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +35,7 @@ public class DatabaseOfficialMessageService implements OfficialMessageService {
 
     private final ChatDao chatDao;
     private final OrderDao orderDao;
+    private final OrderPetSnapshotDao orderPetSnapshotDao;
     private final UserDao userDao;
     private final OfficialMessageProperties officialMessageProperties;
 
@@ -48,10 +56,45 @@ public class DatabaseOfficialMessageService implements OfficialMessageService {
             throw new ClientException(BaseErrorCode.CLIENT_ERROR);
         }
         OrderDO order = requireOrder(orderId);
-        ensureOrderParticipant(order, currentUserId);
+        ensureCanAccessOfficialMessages(order, currentUserId);
         Long systemSenderId = officialMessageProperties.getSystemSenderId();
         return chatDao.selectOfficialByOrderIdAndReceiverId(orderId, currentUserId, systemSenderId).stream()
                 .map(this::toRespDTO)
+                .toList();
+    }
+
+    @Override
+    public List<OfficialMessageInboxItemRespDTO> listInbox(Long currentUserId) {
+        if (currentUserId == null) {
+            throw new ClientException(BaseErrorCode.CLIENT_ERROR);
+        }
+        Long systemSenderId = officialMessageProperties.getSystemSenderId();
+        List<ChatDO> messages = chatDao.selectOfficialByReceiverId(currentUserId, systemSenderId);
+        if (messages.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<ChatDO>> grouped = new LinkedHashMap<>();
+        for (ChatDO message : messages) {
+            if (message.getOrderId() == null) {
+                continue;
+            }
+            grouped.computeIfAbsent(message.getOrderId(), ignored -> new ArrayList<>()).add(message);
+        }
+        if (grouped.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, String> petNameByOrderId = orderPetSnapshotDao.selectByOrderIds(new ArrayList<>(grouped.keySet())).stream()
+                .filter(snapshot -> snapshot.getOrderId() != null)
+                .collect(java.util.stream.Collectors.toMap(
+                        OrderPetSnapshotDO::getOrderId,
+                        snapshot -> snapshot.getSnapPetName() == null ? "" : snapshot.getSnapPetName().trim(),
+                        (left, right) -> left.isBlank() ? right : left));
+
+        return grouped.entrySet().stream()
+                .map(entry -> toInboxItem(entry.getKey(), entry.getValue(), petNameByOrderId.get(entry.getKey())))
+                .sorted(Comparator.comparing(OfficialMessageInboxItemRespDTO::createdAt).reversed())
                 .toList();
     }
 
@@ -89,10 +132,34 @@ public class DatabaseOfficialMessageService implements OfficialMessageService {
         }
     }
 
-    private void ensureOrderParticipant(OrderDO order, Long currentUserId) {
-        if (!currentUserId.equals(order.getOwnerId()) && !currentUserId.equals(order.getProviderId())) {
+    private void ensureCanAccessOfficialMessages(OrderDO order, Long currentUserId) {
+        if (currentUserId.equals(order.getOwnerId()) || currentUserId.equals(order.getProviderId())) {
+            return;
+        }
+        Long systemSenderId = officialMessageProperties.getSystemSenderId();
+        boolean hasOfficialMessages = !chatDao
+                .selectOfficialByOrderIdAndReceiverId(order.getOrderId(), currentUserId, systemSenderId)
+                .isEmpty();
+        if (!hasOfficialMessages) {
             throw new ClientException(BaseErrorCode.ORDER_NOT_OWNER_ERROR);
         }
+    }
+
+    private OfficialMessageInboxItemRespDTO toInboxItem(Long orderId, List<ChatDO> messages, String petName) {
+        ChatDO latest = messages.stream()
+                .max(Comparator.comparing(ChatDO::getMessageId, Comparator.nullsLast(Long::compareTo)))
+                .orElse(messages.get(0));
+        String title = petName == null || petName.isBlank()
+                ? "订单 #" + orderId
+                : petName + " 的服务通知";
+        String createdAt = latest.getCreatedAt() == null ? null : DATE_TIME_FORMATTER.format(latest.getCreatedAt());
+        return new OfficialMessageInboxItemRespDTO(
+                orderId,
+                title,
+                "订单 #" + orderId,
+                latest.getContent(),
+                createdAt,
+                messages.size());
     }
 
     private OrderDO requireOrder(Long orderId) {

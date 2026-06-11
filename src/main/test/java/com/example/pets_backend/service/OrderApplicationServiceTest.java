@@ -53,6 +53,9 @@ class OrderApplicationServiceTest {
     @Mock
     private OrderHardFilterService orderHardFilterService;
 
+    @Mock
+    private OrderOfficialNotificationService orderOfficialNotificationService;
+
     private OrderApplicationService orderApplicationService;
 
     @BeforeEach
@@ -63,7 +66,8 @@ class OrderApplicationServiceTest {
                 orderAddressSnapshotDao,
                 sitterProfileDao,
                 caretakerDepositService,
-                orderHardFilterService);
+                orderHardFilterService,
+                orderOfficialNotificationService);
         UserContext.setUser(new UserInfoDTO(1002L, "13800000002", "阿周", 2, "jwt-token"));
     }
 
@@ -89,6 +93,7 @@ class OrderApplicationServiceTest {
 
         assertEquals(4004L, resp.applicationId());
         verify(orderApplicationDao).insert(any());
+        verify(orderOfficialNotificationService).notifyOwnerOnProviderApplication(order, 1002L);
     }
 
     @Test

@@ -55,6 +55,18 @@ public class ChatDao {
         return chatMapper.selectList(wrapper);
     }
 
+    public List<ChatDO> selectOfficialByReceiverId(Long receiverId, Long systemSenderId) {
+        if (receiverId == null || systemSenderId == null) {
+            return List.of();
+        }
+        LambdaQueryWrapper<ChatDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ChatDO::getReceiverId, receiverId)
+                .eq(ChatDO::getSenderId, systemSenderId)
+                .eq(ChatDO::getDeleted, 0)
+                .orderByDesc(ChatDO::getMessageId);
+        return chatMapper.selectList(wrapper);
+    }
+
     /** 查询当前用户参与过聊天（发送方或接收方）的所有订单 ID（去重） */
     public List<Long> selectDistinctOrderIdsByParticipant(Long userId) {
         if (userId == null) {
