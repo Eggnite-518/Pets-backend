@@ -1,0 +1,84 @@
+spring:
+  config:
+    import:
+      - optional:classpath:review-rules.yml
+      - optional:file:.env[.properties]
+  servlet:
+    multipart:
+      max-file-size: 220MB
+      max-request-size: 240MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/pets?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:jyt20050315}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+pets:
+  server:
+    public-base-url: ${PETS_SERVER_PUBLIC_BASE_URL:http://localhost:8080}
+  oss:
+    endpoint: ${ALIYUN_OSS_ENDPOINT:}
+    bucket-name: ${ALIYUN_OSS_BUCKET_NAME:}
+    access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:}
+    public-base-url: ${ALIYUN_OSS_PUBLIC_BASE_URL:}
+    signed-url-expiration-minutes: ${ALIYUN_OSS_SIGNED_URL_EXPIRATION_MINUTES:10}
+  sms:
+    real-send: ${PETS_SMS_REAL_SEND:false}
+    sign-name: ${PETS_SMS_SIGN_NAME:速通互联验证码}
+    template-code: ${PETS_SMS_TEMPLATE_CODE:100001}
+    access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:}
+  ocr:
+    access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:}
+  alipay:
+    app-id: ${ALIPAY_APP_ID:9021000164618087}
+    private-key: ${ALIPAY_PRIVATE_KEY:}
+    alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+    server-url: ${ALIPAY_SERVER_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+    notify-url: ${ALIPAY_NOTIFY_URL:}
+    return-url: ${ALIPAY_RETURN_URL:}
+    page-quit-url: ${ALIPAY_PAGE_QUIT_URL:}
+    sign-type: ${ALIPAY_SIGN_TYPE:RSA2}
+    charset: ${ALIPAY_CHARSET:UTF-8}
+    format: ${ALIPAY_FORMAT:json}
+  video:
+    max-file-size-mb: ${PETS_VIDEO_MAX_FILE_SIZE_MB:200}
+    max-frame-rate: ${PETS_VIDEO_MAX_FRAME_RATE:90}
+    ffmpeg-path: ${PETS_FFMPEG_PATH:ffmpeg}
+    watermark-font-path: ${PETS_WATERMARK_FONT_PATH:}
+    watermark-template: ${PETS_VIDEO_WATERMARK_TEMPLATE:宠托，%s}
+    temp-dir: ${PETS_VIDEO_TEMP_DIR:}
+    target-content-type: video/mp4
+    target-extension: mp4
+    allowed-content-types:
+      - video/mp4
+      - video/quicktime
+      - video/x-msvideo
+      - video/x-matroska
+      - video/webm
+    allowed-extensions:
+      - mp4
+      - mov
+      - avi
+      - mkv
+      - webm
+  fulfillment-protection:
+    arrival-timeout-minutes: ${PETS_ARRIVAL_TIMEOUT_MINUTES:30}
+    inactivity-timeout-minutes: ${PETS_INACTIVITY_TIMEOUT_MINUTES:30}
+    owner-response-timeout-minutes: ${PETS_OWNER_RESPONSE_TIMEOUT_MINUTES:30}
+    scan-cron: "${PETS_FULFILLMENT_PROTECTION_SCAN_CRON:0 */5 * * * ?}"
+  official-message:
+    system-sender-id: ${PETS_OFFICIAL_MESSAGE_SYSTEM_SENDER_ID:999999}
+  jwt:
+    secret: ${PETS_JWT_SECRET:pets-backend-default-secret-key-change-me-1234567890}
+    issuer: ${PETS_JWT_ISSUER:pets-backend}
+    ttl-seconds: ${PETS_JWT_TTL_SECONDS:86400}

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pets_backend.dao.mapper.PetArchiveMapper">
+    <select id="selectByPetIdAndOwnerId" resultType="com.example.pets_backend.dao.entity.PetArchiveDO">
+        SELECT pet_id,
+               owner_id,
+               pet_name,
+               pet_type,
+               default_req,
+               image,
+               profile_tags_json
+        FROM pet_archives
+        WHERE pet_id = #{petId}
+          AND owner_id = #{ownerId}
+        LIMIT 1
+    </select>
+
+    <select id="selectListByOwnerId" resultType="com.example.pets_backend.dao.entity.PetArchiveDO">
+        SELECT pet_id,
+               owner_id,
+               pet_name,
+               pet_type,
+               default_req,
+               image,
+               profile_tags_json
+        FROM pet_archives
+        WHERE owner_id = #{ownerId}
+        <if test="petName != null and petName != ''">
+            AND pet_name LIKE CONCAT('%', #{petName}, '%')
+        </if>
+        <if test="petType != null">
+            AND pet_type = #{petType}
+        </if>
+        ORDER BY pet_id DESC
+    </select>
+
+    <update id="updateByPetIdAndOwnerId">
+        UPDATE pet_archives
+        SET pet_name = #{petName},
+            pet_type = #{petType},
+            default_req = #{defaultReq},
+            image = #{image},
+            profile_tags_json = #{profileTagsJson}
+        WHERE pet_id = #{petId}
+          AND owner_id = #{ownerId}
+    </update>
+
+    <delete id="deleteByPetIdAndOwnerId">
+        DELETE
+        FROM pet_archives
+        WHERE pet_id = #{petId}
+          AND owner_id = #{ownerId}
+    </delete>
+</mapper>

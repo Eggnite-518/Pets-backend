@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pets_backend.dao.mapper.PetOwnerMapper">
+    <select id="selectByOwnerId" resultType="com.example.pets_backend.dao.entity.PetOwnerDO">
+        SELECT owner_id,
+               emergency_contact
+        FROM pet_owners
+        WHERE owner_id = #{ownerId}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateByOwnerId">
+        UPDATE pet_owners
+        SET emergency_contact = #{emergencyContact}
+        WHERE owner_id = #{ownerId}
+          AND deleted = 0
+    </update>
+
+    <update id="deleteByOwnerId">
+        UPDATE pet_owners
+        SET deleted = 1
+        WHERE owner_id = #{ownerId}
+          AND deleted = 0
+    </update>
+</mapper>
+

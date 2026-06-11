@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pets_backend.dao.mapper.UserMapper">
+    <select id="selectByPhone" resultType="com.example.pets_backend.dao.entity.UserDO">
+        SELECT user_id,
+               phone,
+               nickname,
+               password_hash,
+               avatar_url,
+               role_type,
+               balance,
+               frozen_amount,
+               created_at,
+               real_name,
+               id_card_no
+        FROM users
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
+</mapper>

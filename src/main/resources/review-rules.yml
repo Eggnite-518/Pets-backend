@@ -1,0 +1,7 @@
+pets:
+  review:
+    low-score-threshold: 3
+    low-score-dimensions:
+      - overall
+      - punctuality
+      - professional

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pets_backend.dao.mapper.OrderMapper">
+    <select id="selectOpenOrderPageByFilters" resultType="com.example.pets_backend.dao.entity.OrderDO">
+        SELECT DISTINCT o.*
+        FROM orders o
+        <if test="petType != null">
+            INNER JOIN order_pets_snapshot ops ON ops.order_id = o.order_id
+        </if>
+        WHERE o.order_status = 1
+        <if test="petType != null">
+          AND ops.snap_pet_type = #{petType}
+        </if>
+        <if test="serviceType != null">
+          AND o.service_type = #{serviceType}
+        </if>
+        ORDER BY o.order_id DESC
+    </select>
+
+    <update id="updateProviderIdAndStatus">
+        UPDATE orders
+        SET provider_id = #{providerId},
+            order_status = #{status}
+        WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE orders
+        SET order_status = #{status}
+        WHERE order_id = #{orderId}
+    </update>
+
+    <select id="selectInactiveProviders" resultType="java.lang.Long">
+        SELECT sp.provider_id
+        FROM sitter_profiles sp
+        INNER JOIN orders o
+            ON o.provider_id = sp.provider_id
+            AND o.order_status = 6
+            AND o.deleted = 0
+        WHERE sp.deleted = 0
+          AND sp.verify_status = 2
+        GROUP BY sp.provider_id
+        HAVING MAX(o.updated_at) &lt; #{cutoff}
+    </select>
+</mapper>

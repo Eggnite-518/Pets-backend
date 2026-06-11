@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pets_backend.dao.mapper.OrderApplicationMapper">
+    <select id="countByOrderIdAndProviderId" resultType="int">
+        SELECT COUNT(*)
+        FROM order_applications
+        WHERE order_id = #{orderId}
+          AND provider_id = #{providerId}
+    </select>
+
+    <delete id="deleteByOrderIdAndProviderId">
+        DELETE
+        FROM order_applications
+        WHERE order_id = #{orderId}
+          AND provider_id = #{providerId}
+    </delete>
+
+    <update id="updateApplyStatusByOrderIdAndProviderId">
+        UPDATE order_applications
+        SET apply_status = #{applyStatus}
+        WHERE order_id = #{orderId}
+          AND provider_id = #{providerId}
+    </update>
+
+    <update id="updateApplyStatusForOthers">
+        UPDATE order_applications
+        SET apply_status = #{applyStatus}
+        WHERE order_id = #{orderId}
+          AND provider_id != #{excludeProviderId}
+    </update>
+</mapper>
