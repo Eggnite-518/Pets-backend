@@ -1,12 +1,15 @@
 package com.example.pets_backend.service;
 
 import com.example.pets_backend.dao.PetOwnerDao;
+import com.example.pets_backend.dao.UserDao;
 import com.example.pets_backend.dao.entity.PetOwnerDO;
+import com.example.pets_backend.dao.entity.UserDO;
 import com.example.pets_backend.dto.req.PetOwnerReqDTO;
 import com.example.pets_backend.dto.resp.PetOwnerRespDTO;
 import com.example.pets_backend.frameworks.auth.UserContext;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
 import com.example.pets_backend.frameworks.convention.exception.ClientException;
+import com.example.pets_backend.service.support.OssAccessibleUrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,8 @@ public class PetOwnerService {
     private static final int EMERGENCY_CONTACT_MAX_LENGTH = 20;
 
     private final PetOwnerDao petOwnerDao;
+    private final UserDao userDao;
+    private final OssAccessibleUrlService ossAccessibleUrlService;
 
     @Transactional
     public PetOwnerRespDTO create(PetOwnerReqDTO reqDTO) {
@@ -32,16 +37,13 @@ public class PetOwnerService {
 
         PetOwnerDO petOwner = buildPetOwner(ownerId, reqDTO);
         petOwnerDao.insert(petOwner);
-        return toRespDTO(petOwner);
+        return toRespDTO(getCurrentUserOrThrow(ownerId));
     }
 
     public PetOwnerRespDTO detail() {
         Long ownerId = currentUserId();
-        PetOwnerDO petOwner = petOwnerDao.selectByOwnerId(ownerId);
-        if (petOwner == null) {
-            throw new ClientException(BaseErrorCode.PET_OWNER_NOT_FOUND_ERROR);
-        }
-        return toRespDTO(petOwner);
+        UserDO user = getCurrentUserOrThrow(ownerId);
+        return toRespDTO(user);
     }
 
     @Transactional
@@ -97,10 +99,19 @@ public class PetOwnerService {
         return text.trim();
     }
 
-    private PetOwnerRespDTO toRespDTO(PetOwnerDO petOwner) {
+    private UserDO getCurrentUserOrThrow(Long ownerId) {
+        UserDO user = userDao.selectById(ownerId);
+        if (user == null) {
+            throw new ClientException(BaseErrorCode.CLIENT_ERROR);
+        }
+        return user;
+    }
+
+    private PetOwnerRespDTO toRespDTO(UserDO user) {
         return new PetOwnerRespDTO(
-                petOwner.getOwnerId(),
-                petOwner.getEmergencyContact());
+                user.getUserId(),
+                user.getNickname(),
+                ossAccessibleUrlService.toDisplayUrl(user.getAvatarUrl()),
+                user.getPhone());
     }
 }
-
