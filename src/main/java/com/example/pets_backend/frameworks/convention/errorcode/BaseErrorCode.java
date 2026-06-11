@@ -20,6 +20,7 @@ public enum BaseErrorCode implements IErrorCode {
     PHONE_VERIFY_ERROR("A000151", "手机号格式不正确"),
     PHONE_EXIST_ERROR("A000152", "该手机号已注册"),
     USER_LOGIN_ERROR("A000160", "手机号或密码错误"),
+    USER_NOT_REGISTERED_ERROR("A000161", "该手机号尚未注册"),
 
     PET_ARCHIVE_NAME_VERIFY_ERROR("A000300", "宠物名称不符合要求"),
     PET_ARCHIVE_TYPE_VERIFY_ERROR("A000301", "宠物类型不合法"),

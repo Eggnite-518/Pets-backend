@@ -60,6 +60,36 @@ class OrderRequirementTagServiceTest {
     }
 
     @Test
+    void toRespDTOIncludesAccessNoteForAssignedCaretakerFulfillment() {
+        OrderRequirementTagsReqDTO reqDTO = new OrderRequirementTagsReqDTO(
+                List.of("ACCESS_CODE_LOCK"),
+                "门禁密码 1234",
+                null,
+                null);
+
+        String json = orderRequirementTagService.serialize(reqDTO);
+        var resp = orderRequirementTagService.toRespDTO(json);
+
+        assertEquals("门禁密码 1234", resp.accessNote());
+    }
+
+    @Test
+    void toDetailRespDTOHidesAccessNote() {
+        OrderRequirementTagsReqDTO reqDTO = new OrderRequirementTagsReqDTO(
+                List.of("ACCESS_CODE_LOCK"),
+                "门禁密码 1234",
+                "张三",
+                "13800138000");
+
+        String json = orderRequirementTagService.serialize(reqDTO);
+        var resp = orderRequirementTagService.toDetailRespDTO(json);
+
+        assertEquals(1, resp.tags().size());
+        assertEquals(null, resp.accessNote());
+        assertEquals("张三", resp.emergencyContactName());
+    }
+
+    @Test
     void emptyRequirementReturnsNullJson() {
         assertTrue(orderRequirementTagService.serialize(new OrderRequirementTagsReqDTO(null, null, null, null)) == null);
     }

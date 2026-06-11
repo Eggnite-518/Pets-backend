@@ -13,7 +13,9 @@ import com.example.pets_backend.dao.SitterProfileDao;
 import com.example.pets_backend.dao.SmsVerificationCodeDao;
 import com.example.pets_backend.dao.UserDao;
 import com.example.pets_backend.dao.entity.UserDO;
+import com.example.pets_backend.dao.entity.SmsVerificationCodeDO;
 import com.example.pets_backend.dto.req.LoginUserReqDTO;
+import com.example.pets_backend.dto.req.ResetPasswordReqDTO;
 import com.example.pets_backend.dto.resp.LoginUserRespDTO;
 import com.example.pets_backend.frameworks.auth.JwtUtil;
 import com.example.pets_backend.frameworks.convention.errorcode.BaseErrorCode;
@@ -105,6 +107,38 @@ class UserServiceTest {
                 () -> userService.login(new LoginUserReqDTO("13800000000", "Wrong123!")));
 
         assertEquals(BaseErrorCode.USER_LOGIN_ERROR.code(), exception.getErrorCode());
+    }
+
+    @Test
+    void resetPasswordUpdatesPasswordWhenSmsCodeValid() {
+        UserDO user = new UserDO();
+        user.setUserId(1001L);
+        user.setPhone("13800000000");
+        user.setPasswordHash("old-hash");
+
+        SmsVerificationCodeDO codeRecord = new SmsVerificationCodeDO();
+        codeRecord.setId(88L);
+        codeRecord.setPhone("13800000000");
+        codeRecord.setCode("123456");
+
+        when(userDao.selectByPhone("13800000000")).thenReturn(user);
+        when(smsVerificationCodeDao.selectLatestValid("13800000000")).thenReturn(codeRecord);
+        when(passwordEncoder.encrypt("Abc12345!")).thenReturn("new-hash");
+
+        userService.resetPassword(new ResetPasswordReqDTO("13800000000", "123456", "Abc12345!"));
+
+        verify(smsVerificationCodeDao).markUsed(88L);
+        verify(userDao).updateById(argThat(updated -> "new-hash".equals(updated.getPasswordHash())));
+    }
+
+    @Test
+    void resetPasswordRejectsUnregisteredPhone() {
+        when(userDao.selectByPhone("13800000000")).thenReturn(null);
+
+        ClientException exception = assertThrows(ClientException.class,
+                () -> userService.resetPassword(new ResetPasswordReqDTO("13800000000", "123456", "Abc12345!")));
+
+        assertEquals(BaseErrorCode.USER_NOT_REGISTERED_ERROR.code(), exception.getErrorCode());
     }
 
     @Test

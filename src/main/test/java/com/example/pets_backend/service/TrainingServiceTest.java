@@ -15,8 +15,12 @@ import com.example.pets_backend.dao.TrainingMaterialDao;
 import com.example.pets_backend.dao.UserDao;
 import com.example.pets_backend.dao.entity.SitterProfileDO;
 import com.example.pets_backend.dao.entity.SitterTrainingRecordDO;
+import com.example.pets_backend.dao.entity.TrainingMaterialDO;
 import com.example.pets_backend.dao.entity.UserDO;
 import com.example.pets_backend.dto.resp.TempCaretakerReadyRespDTO;
+import com.example.pets_backend.dto.resp.TrainingStatusRespDTO;
+import java.time.LocalDateTime;
+import java.util.List;
 import com.example.pets_backend.frameworks.auth.JwtUtil;
 import com.example.pets_backend.frameworks.auth.UserContext;
 import com.example.pets_backend.frameworks.auth.UserInfoDTO;
@@ -68,6 +72,89 @@ class TrainingServiceTest {
     @AfterEach
     void tearDown() {
         UserContext.clear();
+    }
+
+    @Test
+    void getStatusUsesTrainingProgressEvenWhenJwtRoleMissing() {
+        UserDO user = new UserDO();
+        user.setUserId(1002L);
+        user.setPhone("13900000001");
+        user.setNickname("caretaker");
+        user.setRoleType(2);
+        user.setRealName("张三");
+        user.setIdCardNo("110101199001011234");
+
+        SitterProfileDO profile = new SitterProfileDO();
+        profile.setProviderId(1002L);
+        profile.setVerifyStatus(1);
+
+        SitterTrainingRecordDO record = new SitterTrainingRecordDO();
+        record.setProviderId(1002L);
+        record.setLearningProgressJson("""
+                {
+                  "900001": {"watchedSeconds": 60, "completedAt": "2026-06-11T10:00:00"},
+                  "900002": {"watchedSeconds": 90, "completedAt": "2026-06-11T10:05:00"}
+                }
+                """);
+
+        TrainingMaterialDO material1 = new TrainingMaterialDO();
+        material1.setMaterialId(900001L);
+        material1.setTitle("平台服务总则");
+        material1.setMinDurationSeconds(60);
+        material1.setIsRequired(1);
+
+        TrainingMaterialDO material2 = new TrainingMaterialDO();
+        material2.setMaterialId(900002L);
+        material2.setTitle("宠物行为学基础");
+        material2.setMinDurationSeconds(90);
+        material2.setIsRequired(1);
+
+        UserContext.setUser(new UserInfoDTO(1002L, "13900000001", "caretaker", null, "jwt-token"));
+
+        when(userDao.selectById(1002L)).thenReturn(user);
+        when(sitterProfileDao.selectById(1002L)).thenReturn(profile);
+        when(sitterTrainingRecordDao.selectById(1002L)).thenReturn(record);
+        when(trainingMaterialDao.selectRequiredCurriculum()).thenReturn(List.of(material1, material2));
+
+        TrainingStatusRespDTO status = trainingService.getStatus();
+
+        assertEquals(2, status.requiredMaterialCount());
+        assertEquals(2, status.completedMaterialCount());
+        assertEquals(100, status.learningProgressPercent());
+    }
+
+    @Test
+    void getStatusTreatsLearningCompletedAsFullProgress() {
+        UserDO user = new UserDO();
+        user.setUserId(1002L);
+        user.setRoleType(2);
+        user.setRealName("张三");
+        user.setIdCardNo("110101199001011234");
+
+        SitterProfileDO profile = new SitterProfileDO();
+        profile.setProviderId(1002L);
+        profile.setVerifyStatus(1);
+
+        SitterTrainingRecordDO record = new SitterTrainingRecordDO();
+        record.setProviderId(1002L);
+        record.setLearningCompletedAt(LocalDateTime.now());
+        record.setLearningProgressJson("{}");
+
+        TrainingMaterialDO material = new TrainingMaterialDO();
+        material.setMaterialId(900001L);
+        material.setTitle("平台服务总则");
+        material.setMinDurationSeconds(60);
+        material.setIsRequired(1);
+
+        when(userDao.selectById(1002L)).thenReturn(user);
+        when(sitterProfileDao.selectById(1002L)).thenReturn(profile);
+        when(sitterTrainingRecordDao.selectById(1002L)).thenReturn(record);
+        when(trainingMaterialDao.selectRequiredCurriculum()).thenReturn(List.of(material));
+
+        TrainingStatusRespDTO status = trainingService.getStatus();
+
+        assertEquals(1, status.requiredMaterialCount());
+        assertEquals(1, status.completedMaterialCount());
     }
 
     @Test

@@ -70,6 +70,12 @@ class PetProfileTagServiceTest {
     }
 
     @Test
+    void rejectsConflictingPhysiologicalStates() {
+        assertThrows(ClientException.class, () -> petProfileTagService.normalize(new PetProfileTagsReqDTO(
+                null, null, List.of("NEUTERED", "IN_HEAT"), null, null, null, null, null)));
+    }
+
+    @Test
     void rejectsInvalidFriendliness() {
         assertThrows(ClientException.class, () -> petProfileTagService.normalize(new PetProfileTagsReqDTO(
                 null, null, null, 6, null, null, null, null)));

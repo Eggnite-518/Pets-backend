@@ -157,12 +157,17 @@ public class PetProfileTagService {
     }
 
     private List<String> normalizePhysiologicalStates(List<String> tags) {
-        return normalizeTagList(tags, PetPhysiologicalStateEnum.values().length, code -> {
+        List<String> normalized = normalizeTagList(tags, PetPhysiologicalStateEnum.values().length, code -> {
             if (PetPhysiologicalStateEnum.fromCode(code) == null) {
                 throw new ClientException(BaseErrorCode.PET_ARCHIVE_TAGS_INVALID_ERROR);
             }
             return PetPhysiologicalStateEnum.fromCode(code).getCode();
         });
+        if (normalized.contains(PetPhysiologicalStateEnum.NEUTERED.getCode())
+                && normalized.contains(PetPhysiologicalStateEnum.IN_HEAT.getCode())) {
+            throw new ClientException(BaseErrorCode.PET_ARCHIVE_TAGS_INVALID_ERROR);
+        }
+        return normalized;
     }
 
     private List<String> normalizeOutdoorBehaviors(List<String> tags) {

@@ -12,6 +12,7 @@ import com.example.pets_backend.dto.req.ChangePasswordReqDTO;
 import com.example.pets_backend.dto.req.LoginByCodeReqDTO;
 import com.example.pets_backend.dto.req.LoginUserReqDTO;
 import com.example.pets_backend.dto.req.RegisterUserReqDTO;
+import com.example.pets_backend.dto.req.ResetPasswordReqDTO;
 import com.example.pets_backend.dto.req.SetPasswordReqDTO;
 import com.example.pets_backend.dto.resp.LoginUserRespDTO;
 import com.example.pets_backend.dto.resp.RegisterUserRespDTO;
@@ -147,8 +148,16 @@ public class UserService {
     }
 
     public void sendVerificationCode(String phone) {
+        sendVerificationCode(phone, "login");
+    }
+
+    public void sendVerificationCode(String phone, String scene) {
         if (phone == null || !MAINLAND_PHONE_PATTERN.matcher(phone).matches()) {
             throw new ClientException(BaseErrorCode.PHONE_VERIFY_ERROR);
+        }
+        String normalizedScene = normalizeSmsScene(scene);
+        if ("reset_password".equals(normalizedScene) && userDao.selectByPhone(phone) == null) {
+            throw new ClientException(BaseErrorCode.USER_NOT_REGISTERED_ERROR);
         }
         if (smsVerificationCodeDao.existsByPhoneWithinSeconds(phone, SMS_RATE_LIMIT_SECONDS)) {
             throw new ClientException(BaseErrorCode.SMS_RATE_LIMIT_ERROR);
@@ -165,6 +174,31 @@ public class UserService {
     }
 
     @Transactional
+    public void resetPassword(ResetPasswordReqDTO reqDTO) {
+        if (reqDTO == null) {
+            throw new ClientException(BaseErrorCode.CLIENT_ERROR);
+        }
+        if (reqDTO.phone() == null || !MAINLAND_PHONE_PATTERN.matcher(reqDTO.phone()).matches()) {
+            throw new ClientException(BaseErrorCode.PHONE_VERIFY_ERROR);
+        }
+        if (reqDTO.code() == null || reqDTO.code().isBlank()) {
+            throw new ClientException(BaseErrorCode.SMS_CODE_INVALID_ERROR);
+        }
+        validatePassword(reqDTO.newPassword());
+
+        UserDO user = userDao.selectByPhone(reqDTO.phone());
+        if (user == null) {
+            throw new ClientException(BaseErrorCode.USER_NOT_REGISTERED_ERROR);
+        }
+
+        SmsVerificationCodeDO record = requireValidSmsCode(reqDTO.phone(), reqDTO.code());
+        smsVerificationCodeDao.markUsed(record.getId());
+
+        user.setPasswordHash(passwordEncoder.encrypt(reqDTO.newPassword()));
+        userDao.updateById(user);
+    }
+
+    @Transactional
     public LoginUserRespDTO loginByCode(LoginByCodeReqDTO reqDTO) {
         if (reqDTO == null || reqDTO.phone() == null || !MAINLAND_PHONE_PATTERN.matcher(reqDTO.phone()).matches()) {
             throw new ClientException(BaseErrorCode.PHONE_VERIFY_ERROR);
@@ -173,14 +207,7 @@ public class UserService {
             throw new ClientException(BaseErrorCode.SMS_CODE_INVALID_ERROR);
         }
 
-        SmsVerificationCodeDO record = smsVerificationCodeDao.selectLatestValid(reqDTO.phone());
-        if (record == null) {
-            throw new ClientException(BaseErrorCode.SMS_CODE_EXPIRED_ERROR);
-        }
-        if (!record.getCode().equals(reqDTO.code())) {
-            throw new ClientException(BaseErrorCode.SMS_CODE_INVALID_ERROR);
-        }
-
+        SmsVerificationCodeDO record = requireValidSmsCode(reqDTO.phone(), reqDTO.code());
         smsVerificationCodeDao.markUsed(record.getId());
 
         UserDO user = userDao.selectByPhone(reqDTO.phone());
@@ -259,6 +286,24 @@ public class UserService {
         SecureRandom random = new SecureRandom();
         int code = random.nextInt(900000) + 100000;
         return String.valueOf(code);
+    }
+
+    private String normalizeSmsScene(String scene) {
+        if (scene == null || scene.isBlank()) {
+            return "login";
+        }
+        return scene.trim().toLowerCase();
+    }
+
+    private SmsVerificationCodeDO requireValidSmsCode(String phone, String code) {
+        SmsVerificationCodeDO record = smsVerificationCodeDao.selectLatestValid(phone);
+        if (record == null) {
+            throw new ClientException(BaseErrorCode.SMS_CODE_EXPIRED_ERROR);
+        }
+        if (!record.getCode().equals(code)) {
+            throw new ClientException(BaseErrorCode.SMS_CODE_INVALID_ERROR);
+        }
+        return record;
     }
 
     private LoginUserRespDTO buildLoginResponse(UserDO user) {

@@ -233,6 +233,10 @@ public class CaretakerOrderService {
         String timeSlot = formatTimeSlot(order.getServiceStartTime(), order.getServiceEndTime());
 
         boolean hasApplied = caretakerApplicationService.hasApplied(currentUserId, orderId);
+        boolean revealAccessNote = isAssigned && isFulfillmentPhase(order.getStatus());
+        var requirementTags = revealAccessNote
+                ? orderRequirementTagService.toRespDTO(order.getRequirementTagsJson())
+                : orderRequirementTagService.toDetailRespDTO(order.getRequirementTagsJson());
 
         return new CaretakerOrderDetailRespDTO(
                 order.getOrderId() == null ? null : order.getOrderId().toString(),
@@ -246,7 +250,7 @@ public class CaretakerOrderService {
                 ownerDTO,
                 pets,
                 resolveServiceNotes(petSnaps, petArchives),
-                orderRequirementTagService.toRespDTO(order.getRequirementTagsJson()),
+                requirementTags,
                 completedNodeTypes,
                 getChecklist(order.getServiceType()),
                 order.getCreatedAt() == null ? null : DATE_TIME_FORMATTER.format(order.getCreatedAt()),
@@ -343,6 +347,11 @@ public class CaretakerOrderService {
     private static String maskPhone(String phone) {
         if (phone == null || phone.length() < 7) return nullToEmpty(phone);
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    }
+
+    private static boolean isFulfillmentPhase(Integer status) {
+        return status != null
+                && status >= OrderStatusEnum.PENDING_FULFILLMENT.getCode();
     }
 
     private static String nullToEmpty(String s) {

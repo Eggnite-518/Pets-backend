@@ -22,5 +22,7 @@ public record ProviderDetailRespDTO(
         Double complianceRate,
         String levelTag,
         List<String> certLabels,
-        Integer reviewCount) {
+        Integer reviewCount,
+        Double punctualityAvg,
+        Double professionalAvg) {
 }

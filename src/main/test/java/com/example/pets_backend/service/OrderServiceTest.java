@@ -327,7 +327,9 @@ class OrderServiceTest {
                 96.5,
                 "银牌宠托师",
                 List.of("实名认证"),
-                15);
+                15,
+                4.7,
+                4.9);
         when(orderCandidateService.getProviderDetail(2002L, 1002L)).thenReturn(expected);
 
         ProviderDetailRespDTO result = orderService.getProviderDetail(2002L, 1002L);

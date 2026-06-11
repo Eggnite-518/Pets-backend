@@ -79,7 +79,7 @@ public class CaretakerMeController {
         return Results.success(reviewService.getCaretakerReviewStats());
     }
 
-    @GetMapping("/reviews/{reviewId}")
+    @GetMapping("/reviews/{reviewId:\\d+}")
     public Result<CaretakerReviewItemRespDTO> getReview(@PathVariable Long reviewId) {
         return Results.success(reviewService.getCaretakerReviewDetail(reviewId));
     }
@@ -100,17 +100,17 @@ public class CaretakerMeController {
         return Results.success(caretakerProfileService.updateMyAvailability(reqDTO));
     }
 
-    @GetMapping("/reviews/{reviewId}/appeal-eligibility")
+    @GetMapping("/reviews/{reviewId:\\d+}/appeal-eligibility")
     public Result<ReviewAppealEligibilityRespDTO> getAppealEligibility(@PathVariable Long reviewId) {
         return Results.success(reviewService.getAppealEligibility(reviewId));
     }
 
-    @GetMapping("/reviews/{reviewId}/appeals/latest")
+    @GetMapping("/reviews/{reviewId:\\d+}/appeals/latest")
     public Result<ReviewAppealRespDTO> getLatestAppeal(@PathVariable Long reviewId) {
         return Results.success(reviewService.getLatestAppeal(reviewId));
     }
 
-    @PostMapping("/reviews/{reviewId}/appeals")
+    @PostMapping("/reviews/{reviewId:\\d+}/appeals")
     public Result<SubmitReviewAppealRespDTO> submitAppeal(@PathVariable Long reviewId,
             @RequestBody SubmitReviewAppealReqDTO reqDTO) {
         return Results.success(reviewService.submitAppeal(reviewId, reqDTO));

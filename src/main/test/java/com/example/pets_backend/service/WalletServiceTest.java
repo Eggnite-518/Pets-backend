@@ -98,5 +98,7 @@ class WalletServiceTest {
         assertEquals("12002", result.list().get(0).recordId());
         assertEquals(1, result.list().get(0).direction());
         assertEquals("168.00", result.list().get(0).amount());
+        assertEquals("订单收益", result.list().get(0).typeText());
+        assertEquals("订单 #2001 完成", result.list().get(0).description());
     }
 }

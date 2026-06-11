@@ -53,12 +53,20 @@ public class OrderRequirementTagService {
     }
 
     public OrderRequirementTagsRespDTO toRespDTO(String json) {
-        OrderRequirementSnapshot snapshot = parseSnapshot(json);
+        return buildRespDTO(parseSnapshot(json), true);
+    }
+
+    public OrderRequirementTagsRespDTO toDetailRespDTO(String json) {
+        return buildRespDTO(parseSnapshot(json), false);
+    }
+
+    private OrderRequirementTagsRespDTO buildRespDTO(
+            OrderRequirementSnapshot snapshot, boolean includeAccessNote) {
         List<String> tags = snapshot.getTags();
         return new OrderRequirementTagsRespDTO(
                 tags,
                 OrderRequirementTagEnum.describeTags(tags),
-                snapshot.getAccessNote(),
+                includeAccessNote ? snapshot.getAccessNote() : null,
                 snapshot.getEmergencyContactName(),
                 snapshot.getEmergencyContactPhone());
     }

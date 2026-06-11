@@ -76,10 +76,10 @@ class CaretakerMeWalletControllerTest {
                         List.of(new CaretakerWalletRecordRespDTO(
                                 "5001",
                                 11,
-                                "Order income",
+                                "订单收益",
                                 1,
                                 "65.00",
-                                "Order income #10086",
+                                "订单 #10086 完成",
                                 "2026-05-20 14:30:00"))));
 
         mockMvc.perform(get("/api/v1/caretaker/me/wallet/records?page=1&pageSize=20"))

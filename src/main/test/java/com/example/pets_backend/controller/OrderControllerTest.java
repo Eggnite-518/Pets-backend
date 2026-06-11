@@ -225,7 +225,9 @@ class OrderControllerTest {
                         96.5,
                         "银牌宠托师",
                         List.of("实名认证"),
-                        15));
+                        15,
+                        4.7,
+                        4.9));
 
         mockMvc.perform(get("/api/v1/orders/2002/reservations/1002")
                         .contentType(MediaType.APPLICATION_JSON))

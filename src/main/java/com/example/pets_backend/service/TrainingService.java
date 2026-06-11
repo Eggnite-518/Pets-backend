@@ -76,7 +76,7 @@ public class TrainingService {
     public TrainingStatusRespDTO getStatus() {
         Long userId = currentUserId();
         UserDO user = requireUser(userId);
-        if (!isCaretakerRole(UserContext.getRoleType())) {
+        if (!isCaretakerContext(user)) {
             return new TrainingStatusRespDTO(
                     VERIFY_STATUS_INIT,
                     isRealNameVerified(user),
@@ -91,7 +91,7 @@ public class TrainingService {
         }
         SitterProfileDO profile = ensureProfile(userId);
         SitterTrainingRecordDO record = ensureTrainingRecord(userId);
-        CurriculumProgress progress = buildCurriculumProgress(record);
+        CurriculumProgress progress = resolveStatusProgress(record);
         return new TrainingStatusRespDTO(
                 profile.getVerifyStatus(),
                 isRealNameVerified(user),
@@ -485,10 +485,39 @@ public class TrainingService {
     }
 
     private void requireCaretakerRole() {
-        Integer roleType = UserContext.getRoleType();
-        if (!isCaretakerRole(roleType)) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
             throw new ClientException(BaseErrorCode.TRAINING_CARETAKER_REQUIRED_ERROR);
         }
+        UserDO user = userDao.selectById(userId);
+        if (user == null || !isCaretakerContext(user)) {
+            throw new ClientException(BaseErrorCode.TRAINING_CARETAKER_REQUIRED_ERROR);
+        }
+    }
+
+    private boolean isCaretakerContext(UserDO user) {
+        if (user == null) {
+            return false;
+        }
+        if (isCaretakerRole(UserContext.getRoleType()) || isCaretakerRole(user.getRoleType())) {
+            return true;
+        }
+        return sitterProfileDao.selectById(user.getUserId()) != null;
+    }
+
+    private CurriculumProgress resolveStatusProgress(SitterTrainingRecordDO record) {
+        CurriculumProgress progress = buildCurriculumProgress(record);
+        int requiredCount = progress.requiredCount();
+        int completedCount = progress.completedCount();
+        if (record.getLearningCompletedAt() != null && requiredCount > 0) {
+            completedCount = Math.max(completedCount, requiredCount);
+        }
+        int progressPercent = requiredCount == 0 ? 0 : (completedCount * 100 / requiredCount);
+        return new CurriculumProgress(
+                requiredCount,
+                completedCount,
+                progressPercent,
+                progress.materials());
     }
 
     private boolean isCaretakerRole(Integer roleType) {

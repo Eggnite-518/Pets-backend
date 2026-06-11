@@ -204,6 +204,8 @@ class OrderCandidateServiceTest {
                 .thenReturn(new ProviderPublicMetrics(92, 4.8, 15, 28, 96.5, "银牌宠托师",
                         List.of("实名认证", "10+次服务")));
         when(providerProfileSupportService.resolveDistanceKm(addressSnapshot, profile)).thenReturn(0.6);
+        when(providerProfileSupportService.resolvePunctualityAvg(1002L)).thenReturn(4.7);
+        when(providerProfileSupportService.resolveProfessionalAvg(1002L)).thenReturn(4.9);
 
         ProviderDetailRespDTO result = orderCandidateService.getProviderDetail(2002L, 1002L);
 
@@ -211,6 +213,8 @@ class OrderCandidateServiceTest {
         assertEquals("阿周", result.providerNickname());
         assertEquals(92, result.creditScore());
         assertEquals(4.8, result.rating());
+        assertEquals(4.7, result.punctualityAvg());
+        assertEquals(4.9, result.professionalAvg());
         assertEquals(28, result.totalOrderCount());
         assertEquals(96.5, result.complianceRate());
         assertEquals("银牌宠托师", result.levelTag());
@@ -252,6 +256,8 @@ class OrderCandidateServiceTest {
                 .thenReturn(new ProviderPublicMetrics(92, 4.8, 15, 28, 96.5, "银牌宠托师",
                         List.of("实名认证")));
         when(providerProfileSupportService.resolveDistanceKm(addressSnapshot, profile)).thenReturn(0.6);
+        when(providerProfileSupportService.resolvePunctualityAvg(1002L)).thenReturn(4.7);
+        when(providerProfileSupportService.resolveProfessionalAvg(1002L)).thenReturn(4.9);
 
         ProviderDetailRespDTO result = orderCandidateService.getProviderDetail(2002L, 1002L);
 

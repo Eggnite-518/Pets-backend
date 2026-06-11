@@ -366,28 +366,50 @@ public class WalletService {
 
     private String tradeTypeText(Integer tradeType) {
         if (tradeType == null) {
-            return "Unknown";
+            return "未知类型";
         }
         return switch (tradeType) {
-            case TRADE_TYPE_ORDER_INCOME -> "Order income";
-            case TRADE_TYPE_EMPTY_RUN_COMPENSATION -> "Empty run compensation";
-            case TRADE_TYPE_WITHDRAW -> "Withdraw";
-            case TRADE_TYPE_ORDER_PAYMENT -> "Order payment";
-            case TRADE_TYPE_ORDER_REFUND -> "Order refund";
-            case TRADE_TYPE_RECHARGE -> "Recharge";
-            case TRADE_TYPE_DEPOSIT_RECHARGE -> "Deposit recharge";
-            case TRADE_TYPE_DEPOSIT_REFUND_APPLY -> "Deposit refund applying";
-            case TRADE_TYPE_DEPOSIT_REFUND -> "Deposit refund";
-            default -> "Wallet transaction";
+            case TRADE_TYPE_ORDER_INCOME -> "订单收益";
+            case TRADE_TYPE_EMPTY_RUN_COMPENSATION -> "空跑补偿";
+            case TRADE_TYPE_WITHDRAW -> "提现";
+            case TRADE_TYPE_ORDER_PAYMENT -> "订单支付";
+            case TRADE_TYPE_ORDER_REFUND -> "订单退款";
+            case TRADE_TYPE_RECHARGE -> "余额充值";
+            case TRADE_TYPE_DEPOSIT_RECHARGE -> "保证金充值";
+            case TRADE_TYPE_DEPOSIT_REFUND_APPLY -> "保证金退还申请";
+            case TRADE_TYPE_DEPOSIT_REFUND -> "保证金退还";
+            default -> "钱包流水";
         };
     }
 
     private String buildRecordDescription(FinancialLogDO financialLog) {
-        String typeText = tradeTypeText(financialLog.getTradeType());
-        if (financialLog.getRelationId() == null) {
-            return typeText;
+        Integer tradeType = financialLog.getTradeType();
+        Long relationId = financialLog.getRelationId();
+        if (tradeType == null) {
+            return "钱包流水";
         }
-        return typeText + " #" + financialLog.getRelationId();
+        return switch (tradeType) {
+            case TRADE_TYPE_ORDER_INCOME -> relationId == null
+                    ? "订单收益"
+                    : "订单 #" + relationId + " 完成";
+            case TRADE_TYPE_EMPTY_RUN_COMPENSATION -> relationId == null
+                    ? "空跑补偿"
+                    : "订单 #" + relationId + " 空跑补偿";
+            case TRADE_TYPE_WITHDRAW -> relationId == null
+                    ? "提现"
+                    : "提现 #" + relationId;
+            case TRADE_TYPE_ORDER_PAYMENT -> relationId == null
+                    ? "订单支付"
+                    : "订单 #" + relationId + " 支付";
+            case TRADE_TYPE_ORDER_REFUND -> relationId == null
+                    ? "订单退款"
+                    : "订单 #" + relationId + " 退款";
+            case TRADE_TYPE_RECHARGE -> "余额充值";
+            case TRADE_TYPE_DEPOSIT_RECHARGE -> "保证金充值";
+            case TRADE_TYPE_DEPOSIT_REFUND_APPLY -> "保证金退还申请";
+            case TRADE_TYPE_DEPOSIT_REFUND -> "保证金退还";
+            default -> tradeTypeText(tradeType);
+        };
     }
 
     private String formatAmount(BigDecimal amount) {

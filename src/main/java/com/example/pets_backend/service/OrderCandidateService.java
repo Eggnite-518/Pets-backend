@@ -156,7 +156,9 @@ public class OrderCandidateService {
                 metrics.complianceRate(),
                 metrics.levelTag(),
                 metrics.certLabels(),
-                metrics.reviewCount());
+                metrics.reviewCount(),
+                providerProfileSupportService.resolvePunctualityAvg(providerId),
+                providerProfileSupportService.resolveProfessionalAvg(providerId));
     }
 
     private Comparator<CandidateListItemRespDTO> buildComparator(CandidateSortByEnum sortBy) {

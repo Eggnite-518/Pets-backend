@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.pets_backend.dto.req.RegisterUserReqDTO;
 import com.example.pets_backend.dto.req.LoginUserReqDTO;
+import com.example.pets_backend.dto.req.ResetPasswordReqDTO;
 import com.example.pets_backend.dto.resp.LoginUserRespDTO;
 import com.example.pets_backend.dto.resp.RegisterUserRespDTO;
 import com.example.pets_backend.frameworks.web.GlobalExceptionHandler;
@@ -67,6 +68,22 @@ class AuthControllerTest {
                                 .andExpect(jsonPath("$.message", is("success")))
                                 .andExpect(jsonPath("$.data.phone", is("13800000000")))
                                 .andExpect(jsonPath("$.data.nickname", is("\u7528\u62370000")));
+        }
+
+        @Test
+        void resetPasswordReturnsSuccess() throws Exception {
+                mockMvc.perform(post("/api/v1/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                                {
+                                                  "phone": "13800000000",
+                                                  "code": "123456",
+                                                  "newPassword": "Abc12345!"
+                                                }
+                                                """))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code", is("0")))
+                                .andExpect(jsonPath("$.message", is("success")));
         }
 
         @Test

@@ -246,7 +246,7 @@ public class OrderService {
                 serviceTypeToServiceText(order.getServiceType()),
                 hardFilterTags,
                 OrderHardFilterTagEnum.describeTags(hardFilterTags),
-                orderRequirementTagService.toRespDTO(order.getRequirementTagsJson()),
+                orderRequirementTagService.toDetailRespDTO(order.getRequirementTagsJson()),
                 remark,
                 pets,
                 applications);

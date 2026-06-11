@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +57,27 @@ public class ProviderProfileSupportService {
                 complianceRate,
                 resolveLevelTag(creditScore),
                 resolveCertLabels(user, profile, trainingRecord, totalOrderCount));
+    }
+
+    public double resolvePunctualityAvg(Long providerId) {
+        return resolveReviewDimensionAvg(providerId, ReviewDO::getPunctualityScore);
+    }
+
+    public double resolveProfessionalAvg(Long providerId) {
+        return resolveReviewDimensionAvg(providerId, ReviewDO::getProfessionalScore);
+    }
+
+    private double resolveReviewDimensionAvg(Long providerId, Function<ReviewDO, Integer> getter) {
+        List<ReviewDO> reviews = reviewDao.selectByTargetIdAndType(providerId, REVIEW_TYPE_OWNER_TO_PROVIDER);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        return GeoUtils.roundToOneDecimal(reviews.stream()
+                .map(getter)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0.0));
     }
 
     public Double resolveDistanceKm(OrderAddressSnapshotDO orderAddress, SitterProfileDO profile) {

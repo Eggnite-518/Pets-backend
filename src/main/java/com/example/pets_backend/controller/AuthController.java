@@ -4,6 +4,7 @@ import com.example.pets_backend.dto.req.ChangePasswordReqDTO;
 import com.example.pets_backend.dto.req.LoginByCodeReqDTO;
 import com.example.pets_backend.dto.req.LoginUserReqDTO;
 import com.example.pets_backend.dto.req.RegisterUserReqDTO;
+import com.example.pets_backend.dto.req.ResetPasswordReqDTO;
 import com.example.pets_backend.dto.req.SendCodeReqDTO;
 import com.example.pets_backend.dto.req.SetPasswordReqDTO;
 import com.example.pets_backend.dto.resp.LoginUserRespDTO;
@@ -36,7 +37,13 @@ public class AuthController {
 
     @PostMapping("/send-code")
     public Result<Void> sendCode(@RequestBody SendCodeReqDTO reqDTO) {
-        userService.sendVerificationCode(reqDTO.phone());
+        userService.sendVerificationCode(reqDTO.phone(), reqDTO.scene());
+        return Results.success();
+    }
+
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@RequestBody ResetPasswordReqDTO reqDTO) {
+        userService.resetPassword(reqDTO);
         return Results.success();
     }
 
